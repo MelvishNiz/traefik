@@ -17,6 +17,7 @@
         # METRICS
         - "--metrics.prometheus=true"
         - "--metrics.prometheus.buckets=0.1,0.3,1.2,5.0"
+        - "--entryPoints.metrics.address=:8082"
         - "--metrics.prometheus.entryPoint=metrics"
         # PROVIDERS
         - "--providers.docker=true"
@@ -87,9 +88,12 @@
         GF_SECURITY_DISABLE_INITIAL_ADMIN_CREATION: "true"
         GF_INSTALL_PLUGINS: grafana-piechart-panel
       labels:
+        - "traefik.enable=true"
         - "traefik.http.routers.grafana.rule=Host(`${GRAFANA_URL}`)"
         - "traefik.http.routers.grafana.service=grafana"
         - "traefik.http.routers.grafana.middlewares=auth"
+        - "traefik.http.routers.prometheus.entrypoints=websecure"
+        - "traefik.http.routers.prometheus.tls.certresolver=myresolver"
         # - "traefik.http.services.grafana.loadbalancer.server.port=3000"
       networks:
         - main

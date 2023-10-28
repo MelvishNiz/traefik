@@ -85,16 +85,14 @@
         - ./grafana/data:/var/lib/grafana
         - ./grafana/provisioning/:/etc/grafana/provisioning/
       environment:
-        GF_SECURITY_DISABLE_INITIAL_ADMIN_CREATION: "true"
         GF_INSTALL_PLUGINS: grafana-piechart-panel
       labels:
         - "traefik.enable=true"
         - "traefik.http.routers.grafana.rule=Host(`${GRAFANA_URL}`)"
         - "traefik.http.routers.grafana.service=grafana-traefik"
-        - "traefik.http.routers.grafana.middlewares=auth"
         - "traefik.http.routers.grafana.entrypoints=websecure"
         - "traefik.http.routers.grafana.tls.certresolver=myresolver"
-        # - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+        - "traefik.http.services.grafana.loadbalancer.server.port=3000"
       networks:
         - main
       restart: unless-stopped

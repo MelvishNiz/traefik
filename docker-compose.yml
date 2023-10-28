@@ -1,48 +1,83 @@
-version: "3.3"
-services:
-  traefik:
-    image: "traefik:v2.10"
-    container_name: "traefik"
-    restart: "unless-stopped"
-    ports:
-      - "80:80"
-      - "443:443"
-      # - "8080:8080"
-    command:
-      #- "--log.level=DEBUG"
-      # SETTINGS
-      - "--api=true"
-      - "--api.dashboard=true"
-      #- "--api.insecure=true"
-      - "--api.debug=false"
-      # PROVIDERS
-      - "--providers.docker=true"
-      - "--providers.docker.exposedbydefault=false"
-      # ENTRYPOINT
-      - "--entrypoints.web.address=:80"
-      - "--entryPoints.websecure.address=:443"
-      # SSL
-      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
-      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
-      - "--certificatesresolvers.myresolver.acme.email=${EMAIL}"
-      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
-      # SSL certificate verification methods
-      - "--certificatesresolvers.myresolver.acme.tlschallenge=true" # TLS challenge
-      # - "--certificatesresolvers.myresolver.acme.httpchallenge.entrypoint=web" # TLS http challenge
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.middlewares.auth.basicauth.usersfile=/auth/users"
-      - "traefik.http.routers.api.rule=Host(`${DOMAIN_DASHBOARD}`)" # DOMAIN SETTING
-      - "traefik.http.routers.api.service=api@internal"
-      - "traefik.http.routers.api.middlewares=auth"
-      - "traefik.http.routers.api.entrypoints=websecure"
-      - "traefik.http.routers.api.tls.certresolver=myresolver"
-    volumes:
-      - "./auth:/auth"
-      - "./letsencrypt:/letsencrypt"
-      - "/var/run/docker.sock:/var/run/docker.sock:ro"
-    networks:
-      - main
-networks:
-  main:
-    driver: bridge
+  version: "3.3"
+  services:
+    traefik:
+      image: "traefik:v2.10"
+      container_name: "traefik"
+      ports:
+        - "80:80"
+        - "443:443"
+        # - "9090:9090"
+        # - "8080:8080"
+      command:
+        - "--log.level=DEBUG"
+        # SETTINGS
+        - "--api=true"
+        - "--api.dashboard=true"
+        #- "--api.insecure=true"
+        - "--api.debug=false"
+        # METRICS
+        - "--metrics.prometheus=true"
+        - "--metrics.prometheus.buckets=0.1,0.3,1.2,5.0"
+        - "--entryPoints.metrics.address=:8082"
+        - "--metrics.prometheus.entryPoint=metrics"
+        # PROVIDERS
+        - "--providers.docker=true"
+        - "--providers.docker.watch"
+        - "--providers.docker.exposedbydefault=false"
+        # ENTRYPOINT
+        - "--entrypoints.web.address=:80"
+        - "--entryPoints.websecure.address=:443"
+        # SSL
+        - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+        - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+        - "--certificatesresolvers.myresolver.acme.email=${EMAIL}"
+        - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+        # SSL certificate verification methods
+        - "--certificatesresolvers.myresolver.acme.tlschallenge=true" # TLS challenge
+        # - "--certificatesresolvers.myresolver.acme.httpchallenge.entrypoint=web" # TLS http challenge
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.middlewares.auth.basicauth.usersfile=/auth/users"
+        - "traefik.http.routers.api.rule=Host(`${DOMAIN_DASHBOARD}`)" # DOMAIN SETTING
+        - "traefik.http.routers.api.service=api@internal"
+        - "traefik.http.routers.api.middlewares=auth"
+        - "traefik.http.routers.api.entrypoints=websecure"
+        - "traefik.http.routers.api.tls.certresolver=myresolver"
+      volumes:
+        - "./auth:/auth"
+        - "./letsencrypt:/letsencrypt"
+        - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      networks:
+        - main
+      restart: "unless-stopped"
+      logging:
+        options:
+          max-size: "10m"
+          max-file: "3"
+    
+    prometheus:
+      image: prom/prometheus
+      volumes:
+        - ./prometheus:/etc/prometheus/
+      command:
+        - '--config.file=/etc/prometheus/prometheus.yml'
+        - '--storage.tsdb.path=/etc/prometheus/data_storage'
+        - '--storage.tsdb.retention.size=256MB'
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.prometheus.rule=Host(`${PROM_URL}`)"
+        - "traefik.http.routers.prometheus.service=prometheus"
+        - "traefik.http.routers.prometheus.middlewares=auth"
+        - "traefik.http.routers.api.entrypoints=websecure"
+        - "traefik.http.routers.api.tls.certresolver=myresolver"
+        # - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
+      networks:
+        - main
+      restart: unless-stopped
+      logging:
+        options:
+          max-size: "10m"
+          max-file: "3"
+  networks:
+    main:
+      driver: bridge

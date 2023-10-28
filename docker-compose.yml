@@ -6,7 +6,6 @@
       ports:
         - "80:80"
         - "443:443"
-        # - "9090:9090"
         # - "8080:8080"
       command:
         - "--log.level=DEBUG"
@@ -18,7 +17,6 @@
         # METRICS
         - "--metrics.prometheus=true"
         - "--metrics.prometheus.buckets=0.1,0.3,1.2,5.0"
-        - "--entryPoints.metrics.address=:8082"
         - "--metrics.prometheus.entryPoint=metrics"
         # PROVIDERS
         - "--providers.docker=true"
@@ -38,7 +36,7 @@
       labels:
         - "traefik.enable=true"
         - "traefik.http.middlewares.auth.basicauth.usersfile=/auth/users"
-        - "traefik.http.routers.api.rule=Host(`${DOMAIN_DASHBOARD}`)" # DOMAIN SETTING
+        - "traefik.http.routers.api.rule=Host(`${DASHBOARD_URL}`)" # DOMAIN SETTING
         - "traefik.http.routers.api.service=api@internal"
         - "traefik.http.routers.api.middlewares=auth"
         - "traefik.http.routers.api.entrypoints=websecure"
@@ -66,11 +64,10 @@
       labels:
         - "traefik.enable=true"
         - "traefik.http.routers.prometheus.rule=Host(`${PROM_URL}`)"
-        - "traefik.http.routers.prometheus.service=prometheus"
+        - "traefik.http.routers.prometheus.service=prometheus-traefik"
         - "traefik.http.routers.prometheus.middlewares=auth"
-        - "traefik.http.routers.api.entrypoints=websecure"
-        - "traefik.http.routers.api.tls.certresolver=myresolver"
-        # - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
+        - "traefik.http.routers.prometheus.entrypoints=websecure"
+        - "traefik.http.routers.prometheus.tls.certresolver=myresolver"
       networks:
         - main
       restart: unless-stopped
@@ -78,6 +75,29 @@
         options:
           max-size: "10m"
           max-file: "3"
+
+    grafana:
+      image: grafana/grafana
+      depends_on:
+        - prometheus
+      volumes:
+        - ./grafana/data:/var/lib/grafana
+        - ./grafana/provisioning/:/etc/grafana/provisioning/
+      environment:
+        GF_SECURITY_DISABLE_INITIAL_ADMIN_CREATION: "true"
+        GF_INSTALL_PLUGINS: grafana-piechart-panel
+      labels:
+        - "traefik.http.routers.grafana.rule=Host(`${GRAFANA_URL}`)"
+        - "traefik.http.routers.grafana.service=grafana"
+        - "traefik.http.routers.grafana.middlewares=auth"
+        # - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+      networks:
+        - main
+      restart: unless-stopped
+      logging:
+        options:
+          max-size: "10m"
+          max-file: "3" 
   networks:
     main:
       driver: bridge

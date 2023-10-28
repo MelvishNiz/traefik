@@ -90,10 +90,10 @@
       labels:
         - "traefik.enable=true"
         - "traefik.http.routers.grafana.rule=Host(`${GRAFANA_URL}`)"
-        - "traefik.http.routers.grafana.service=grafana"
+        - "traefik.http.routers.grafana.service=grafana-traefik"
         - "traefik.http.routers.grafana.middlewares=auth"
-        - "traefik.http.routers.prometheus.entrypoints=websecure"
-        - "traefik.http.routers.prometheus.tls.certresolver=myresolver"
+        - "traefik.http.routers.grafana.entrypoints=websecure"
+        - "traefik.http.routers.grafana.tls.certresolver=myresolver"
         # - "traefik.http.services.grafana.loadbalancer.server.port=3000"
       networks:
         - main

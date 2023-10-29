@@ -17,8 +17,6 @@
         # METRICS
         - "--metrics.prometheus=true"
         - "--metrics.prometheus.buckets=0.1,0.3,1.2,5.0"
-        - "--entryPoints.metrics.address=:8082"
-        - "--metrics.prometheus.entryPoint=metrics"
         # PROVIDERS
         - "--providers.docker=true"
         - "--providers.docker.watch"
@@ -65,10 +63,11 @@
       labels:
         - "traefik.enable=true"
         - "traefik.http.routers.prometheus.rule=Host(`${PROM_URL}`)"
-        - "traefik.http.routers.prometheus.service=prometheus-traefik"
+        - "traefik.http.routers.prometheus.service=prometheus"
         - "traefik.http.routers.prometheus.middlewares=auth"
         - "traefik.http.routers.prometheus.entrypoints=websecure"
         - "traefik.http.routers.prometheus.tls.certresolver=myresolver"
+        - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
       networks:
         - main
       restart: unless-stopped
@@ -89,9 +88,10 @@
       labels:
         - "traefik.enable=true"
         - "traefik.http.routers.grafana.rule=Host(`${GRAFANA_URL}`)"
-        - "traefik.http.routers.grafana.service=grafana-traefik"
+        - "traefik.http.routers.grafana.service=grafana"
         - "traefik.http.routers.grafana.entrypoints=websecure"
         - "traefik.http.routers.grafana.tls.certresolver=myresolver"
+        - "traefik.http.services.prometheus.loadbalancer.server.port=3000"
       networks:
         - main
       restart: unless-stopped
